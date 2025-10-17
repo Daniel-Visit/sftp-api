@@ -1,18 +1,31 @@
 FROM python:3.11-slim
 
+# Configuración de entorno
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8080
+    DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    openssh-client ca-certificates && rm -rf /var/lib/apt/lists/*
+# Instalar dependencias del sistema en un solo layer
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    openssh-client \
+    ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
+# Configurar directorio de trabajo
 WORKDIR /app
-COPY requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copiar e instalar dependencias Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-EXPOSE ${PORT}
+# Copiar código de la aplicación
+COPY app.py .
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "${PORT}"]
+# Exponer puerto (Railway usa la variable PORT)
+EXPOSE 8080
+
+# Comando de inicio usando variable de entorno PORT
+CMD uvicorn app:app --host 0.0.0.0 --port ${PORT:-8080}
