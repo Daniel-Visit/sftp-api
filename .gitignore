@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Logs & local artifacts
+*.log
+
+# OS files
+.DS_Store
+
+# Docker / Build
+*.egg-info/
+build/
+dist/
