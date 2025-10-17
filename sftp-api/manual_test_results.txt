@@ -1,0 +1,121 @@
+==================================
+SFTP API - RESULTADOS DE TEST MANUAL
+Fecha: Thu Oct 16 22:29:54 -03 2025
+Servidor: 167.99.12.87:2222
+Usuario: homemed
+==================================
+
+-----------------------------------
+Test 1: Health Check
+Comando: curl -s -w '\n%{http_code}' http://localhost:8080/healthz
+Status HTTP: 200
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 2: Auth - Sin API Key (debe fallar)
+Comando: curl -s -w '\n%{http_code}' http://localhost:8080/list
+Status HTTP: 401
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 3: Auth - API Key incorrecta (debe fallar)
+Comando: curl -s -w '\n%{http_code}' -H 'X-API-Key: invalid-key' http://localhost:8080/list
+Status HTTP: 401
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 4: Listar directorio root
+Comando: curl -s -w '\n%{http_code}' -H 'X-API-Key: test-api-key-12345' 'http://localhost:8080/list?path=/'
+Status HTTP: 200
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 5: Path traversal (debe fallar)
+Comando: curl -s -w '\n%{http_code}' -H 'X-API-Key: test-api-key-12345' 'http://localhost:8080/list?path=../../etc/passwd'
+Status HTTP: 400
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 6: Crear directorio de prueba
+Comando: curl -s -w '\n%{http_code}' -X POST -H 'X-API-Key: test-api-key-12345' -F 'path=/test-api-1760664594' http://localhost:8080/mkdir
+Status HTTP: 200
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 7: Subir archivo
+Comando: curl -s -w '\n%{http_code}' -X POST -H 'X-API-Key: test-api-key-12345' -F 'remote_path=/test-api-1760664594/test.txt' -F 'file=@/tmp/test_file_1760664594.txt' http://localhost:8080/upload
+Status HTTP: 200
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 8: Upload terminando en / (debe fallar)
+Comando: curl -s -w '\n%{http_code}' -X POST -H 'X-API-Key: test-api-key-12345' -F 'remote_path=/test-api-1760664594/' -F 'file=@/tmp/test_file_1760664594.txt' http://localhost:8080/upload
+Status HTTP: 400
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 9: Descargar archivo
+Comando: curl -s -w '\n%{http_code}' -H 'X-API-Key: test-api-key-12345' 'http://localhost:8080/download?remote_path=/test-api-1760664594/test.txt' -o /tmp/downloaded_1760664594.txt
+Status HTTP: 200
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 10: Eliminar archivo
+Comando: curl -s -w '\n%{http_code}' -X DELETE -H 'X-API-Key: test-api-key-12345' 'http://localhost:8080/delete-file?remote_path=/test-api-1760664594/test.txt'
+Status HTTP: 200
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 11: Eliminar directorio vacío
+Comando: curl -s -w '\n%{http_code}' -X DELETE -H 'X-API-Key: test-api-key-12345' 'http://localhost:8080/delete-dir?remote_path=/test-api-1760664594'
+Status HTTP: 200
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 12: Crear directorio para test recursivo
+Comando: curl -s -w '\n%{http_code}' -X POST -H 'X-API-Key: test-api-key-12345' -F 'path=/test-api-1760664594' http://localhost:8080/mkdir
+Status HTTP: 200
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 13: Subir archivo para test recursivo
+Comando: curl -s -w '\n%{http_code}' -X POST -H 'X-API-Key: test-api-key-12345' -F 'remote_path=/test-api-1760664594/file.txt' -F 'file=@/tmp/test_file_1760664594.txt' http://localhost:8080/upload
+Status HTTP: 200
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 14: Eliminar directorio no vacío sin recursive (debe fallar)
+Comando: curl -s -w '\n%{http_code}' -X DELETE -H 'X-API-Key: test-api-key-12345' 'http://localhost:8080/delete-dir?remote_path=/test-api-1760664594'
+Status HTTP: 400
+Respuesta: 
+Resultado: ✅ PASÓ
+
+-----------------------------------
+Test 15: Eliminar directorio recursivamente
+Comando: curl -s -w '\n%{http_code}' -X DELETE -H 'X-API-Key: test-api-key-12345' 'http://localhost:8080/delete-dir?remote_path=/test-api-1760664594&recursive=true'
+Status HTTP: 200
+Respuesta: 
+Resultado: ✅ PASÓ
+
+
+==================================
+RESUMEN FINAL
+==================================
+Total de tests: 15
+Tests exitosos: 15
+Tests fallidos: 0
+Tasa de éxito: 100.0%
+
