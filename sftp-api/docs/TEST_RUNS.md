@@ -7,8 +7,26 @@ Este documento registra los resultados de los tests ejecutados en la API SFTP.
 - **Host**: 167.99.12.87
 - **Puerto**: 2222
 - **Usuario**: homemed
-- **Contraseña**: qweqwe
 - **BASE_DIR**: /home/homemed
+
+## Cómo Ejecutar Tests Manuales
+
+Ver guía completa en: [`/docs/MANUAL_TEST_GUIDE.md`](../../docs/MANUAL_TEST_GUIDE.md)
+
+**Resumen rápido**:
+```bash
+cd sftp-api
+# Terminal 1: Levantar API
+uvicorn app:app --port 8080
+
+# Terminal 2: Ejecutar tests
+bash manual_test.sh
+
+# Ver resultados
+cat manual_test_results.txt
+```
+
+---
 
 ## Test Run #1 - Fecha: [PENDIENTE]
 
