@@ -1,17 +1,8 @@
-FROM python:3.11-slim
+FROM python:3.11
 
 # Configuración de entorno
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    DEBIAN_FRONTEND=noninteractive
-
-# Instalar dependencias del sistema en un solo layer
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    openssh-client \
-    ca-certificates && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    PYTHONUNBUFFERED=1
 
 # Configurar directorio de trabajo
 WORKDIR /app
