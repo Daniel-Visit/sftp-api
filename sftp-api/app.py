@@ -35,7 +35,39 @@ def set_settings_for_testing(test_settings):
     _settings_instance = test_settings
 
 settings = get_settings()
-app = FastAPI(title="SFTP API", version="1.2.0")
+app = FastAPI(
+    title="SFTP API",
+    version="1.2.0",
+    description="""
+    API HTTP para operaciones SFTP (SSH File Transfer Protocol) sobre servidor remoto.
+    
+    ## Características
+    
+    * **Listar** archivos y directorios
+    * **Crear** directorios recursivamente
+    * **Subir** archivos (solo archivos individuales)
+    * **Descargar** archivos vía streaming
+    * **Eliminar** archivos y directorios (con opción recursiva)
+    
+    ## Autenticación
+    
+    Todos los endpoints (excepto `/healthz`) requieren el header `X-API-Key`.
+    
+    ## Seguridad
+    
+    * Todas las operaciones están confinadas a `BASE_DIR`
+    * Path traversal bloqueado (`../` no permitido)
+    * Protección contra eliminación de `BASE_DIR`
+    * Solo permite subir archivos individuales (no directorios)
+    """,
+    contact={
+        "name": "SFTP API Support",
+        "url": "https://github.com/Daniel-Visit/sftp-api",
+    },
+    license_info={
+        "name": "MIT",
+    }
+)
 
 # ------------- Auth -------------
 def require_api_key(x_api_key: Optional[str] = Header(None)):
@@ -104,12 +136,31 @@ def rmtree_sftp(sftp: paramiko.SFTPClient, target: str):
     sftp.rmdir(target_norm)
 
 # ------------- Endpoints -------------
-@app.get("/healthz")
+@app.get(
+    "/healthz",
+    tags=["Health"],
+    summary="Health Check",
+    description="Verifica que el servicio está funcionando correctamente. No requiere autenticación.",
+    response_description="Estado del servicio"
+)
 def healthz():
+    """
+    Endpoint de healthcheck simple.
+    
+    Retorna:
+    - **ok**: True si el servicio está funcionando
+    - **service**: Nombre del servicio
+    """
     return {"ok": True, "service": "sftp-api"}
 
-@app.get("/list", dependencies=[Depends(require_api_key)])
-def list_dir(path: str = Query("/", description="Ruta relativa a BASE_DIR")):
+@app.get(
+    "/list",
+    tags=["Directorios"],
+    summary="Listar contenido de directorio",
+    description="Lista archivos y subdirectorios de una ruta específica. Retorna nombre, tamaño, permisos y timestamp de cada elemento.",
+    dependencies=[Depends(require_api_key)]
+)
+def list_dir(path: str = Query("/", description="Ruta relativa a BASE_DIR", example="/")):
     settings = get_settings()
     sftp = sftp_connect()
     try:
@@ -118,8 +169,14 @@ def list_dir(path: str = Query("/", description="Ruta relativa a BASE_DIR")):
     finally:
         sftp.close()
 
-@app.post("/mkdir", dependencies=[Depends(require_api_key)])
-def mkdir(path: str = Form(..., description="Directorio a crear (relativo a BASE_DIR)")):
+@app.post(
+    "/mkdir",
+    tags=["Directorios"],
+    summary="Crear directorio",
+    description="Crea un directorio recursivamente (equivalente a `mkdir -p`). Si los directorios padre no existen, se crean automáticamente.",
+    dependencies=[Depends(require_api_key)]
+)
+def mkdir(path: str = Form(..., description="Directorio a crear (relativo a BASE_DIR)", example="/uploads/2025")):
     settings = get_settings()
     sftp = sftp_connect()
     try:
@@ -129,9 +186,17 @@ def mkdir(path: str = Form(..., description="Directorio a crear (relativo a BASE
     finally:
         sftp.close()
 
-@app.post("/upload", dependencies=[Depends(require_api_key)])
-def upload(remote_path: str = Form(..., description="Ruta destino del archivo (relativa a BASE_DIR)"),
-          file: UploadFile = File(...)):
+@app.post(
+    "/upload",
+    tags=["Archivos"],
+    summary="Subir archivo",
+    description="Sube UN archivo al servidor SFTP. Solo acepta archivos individuales, no directorios. La ruta NO debe terminar en `/`.",
+    dependencies=[Depends(require_api_key)]
+)
+def upload(
+    remote_path: str = Form(..., description="Ruta destino del archivo (relativa a BASE_DIR)", example="/uploads/document.pdf"),
+    file: UploadFile = File(..., description="Archivo a subir")
+):
     settings = get_settings()
     sftp = sftp_connect()
     try:
@@ -159,8 +224,14 @@ def upload(remote_path: str = Form(..., description="Ruta destino del archivo (r
     finally:
         sftp.close()
 
-@app.get("/download", dependencies=[Depends(require_api_key)])
-def download(remote_path: str):
+@app.get(
+    "/download",
+    tags=["Archivos"],
+    summary="Descargar archivo",
+    description="Descarga un archivo del servidor SFTP. Retorna el archivo como stream.",
+    dependencies=[Depends(require_api_key)]
+)
+def download(remote_path: str = Query(..., description="Ruta del archivo a descargar (relativa a BASE_DIR)", example="/uploads/document.pdf")):
     settings = get_settings()
     sftp = sftp_connect()
     try:
@@ -177,8 +248,14 @@ def download(remote_path: str):
     finally:
         sftp.close()
 
-@app.delete("/delete-file", dependencies=[Depends(require_api_key)])
-def delete_file(remote_path: str):
+@app.delete(
+    "/delete-file",
+    tags=["Archivos"],
+    summary="Eliminar archivo",
+    description="Elimina un archivo del servidor SFTP. Si la ruta apunta a un directorio, retorna error.",
+    dependencies=[Depends(require_api_key)]
+)
+def delete_file(remote_path: str = Query(..., description="Ruta del archivo a eliminar (relativa a BASE_DIR)", example="/uploads/document.pdf")):
     settings = get_settings()
     sftp = sftp_connect()
     try:
@@ -192,8 +269,17 @@ def delete_file(remote_path: str):
     finally:
         sftp.close()
 
-@app.delete("/delete-dir", dependencies=[Depends(require_api_key)])
-def delete_dir(remote_path: str, recursive: bool = Query(False, description="Eliminar recursivamente")):
+@app.delete(
+    "/delete-dir",
+    tags=["Directorios"],
+    summary="Eliminar directorio",
+    description="Elimina un directorio. Por defecto solo elimina directorios vacíos. Con `recursive=true` elimina el directorio y todo su contenido. No permite eliminar BASE_DIR.",
+    dependencies=[Depends(require_api_key)]
+)
+def delete_dir(
+    remote_path: str = Query(..., description="Ruta del directorio a eliminar (relativa a BASE_DIR)", example="/uploads/2025"),
+    recursive: bool = Query(False, description="Eliminar recursivamente (incluyendo todo el contenido)")
+):
     settings = get_settings()
     sftp = sftp_connect()
     try:
